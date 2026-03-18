@@ -13,7 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,12 +31,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.passkeydriver.data.Driver
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-    driver: Driver,
+    driverId: String,
+    driverName: String,
     onLogout: () -> Unit
 ) {
     Scaffold(
@@ -45,10 +45,7 @@ fun DashboardScreen(
                 title = { Text("Dashboard") },
                 actions = {
                     IconButton(onClick = onLogout) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = "Logout"
-                        )
+                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Logout")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -68,7 +65,6 @@ fun DashboardScreen(
         ) {
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Success icon
             Icon(
                 imageVector = Icons.Default.CheckCircle,
                 contentDescription = null,
@@ -86,7 +82,6 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Driver info card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -97,7 +92,6 @@ fun DashboardScreen(
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Avatar
                     Surface(
                         modifier = Modifier.size(80.dp),
                         shape = CircleShape,
@@ -105,7 +99,7 @@ fun DashboardScreen(
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
-                                text = driver.displayName.first().uppercase(),
+                                text = driverName.first().uppercase(),
                                 style = MaterialTheme.typography.headlineLarge,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
@@ -115,21 +109,15 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = driver.displayName,
+                        text = driverName,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Medium
                     )
 
-                    Text(
-                        text = "@${driver.username}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = "Driver ID: ${driver.id}",
+                        text = "ID: $driverId",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -138,7 +126,6 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Auth method indicator
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -152,19 +139,19 @@ fun DashboardScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Fingerprint,
+                        imageVector = Icons.Default.Nfc,
                         contentDescription = null,
                         modifier = Modifier.size(32.dp),
                         tint = MaterialTheme.colorScheme.onTertiaryContainer
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Authenticated via Passkey",
+                        text = "Authenticated via NFC + PIN",
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onTertiaryContainer
                     )
                     Text(
-                        text = "No password was used for this login",
+                        text = "NFC card identity verified with personal PIN",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center
