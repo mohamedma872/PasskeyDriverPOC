@@ -9,7 +9,17 @@
       "WebFetch(domain:www.noon.com)",
       "Bash(find /Users/mohamedelsdody/Desktop/PasskeyDriverPOC/app -name *.kt)",
       "Bash(./gradlew installDebug)",
-      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")"
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(adb devices:*)",
+      "Bash(open /Users/mohamedelsdody/Desktop/NFC_Driver_Auth_POC.html)",
+      "Bash(adb shell:*)",
+      "Bash(adb exec-out:*)",
+      "Bash(tr '>' '\\\\n')",
+      "Bash(open /Users/mohamedelsdody/Desktop/NFC_Driver_Auth_WH.pdf)",
+      "Bash(open /Users/mohamedelsdody/Desktop/NFC_Driver_Auth_POC.pdf)"
+    ],
+    "additionalDirectories": [
+      "/Users/mohamedelsdody/Desktop"
     ]
   }
 }
