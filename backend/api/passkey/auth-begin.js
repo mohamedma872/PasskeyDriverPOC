@@ -2,7 +2,7 @@ import { generateAuthenticationOptions } from "@simplewebauthn/server";
 import { storeChallenge } from "../_redis.js";   // challenge → Redis (TTL)
 import { randomUUID } from "crypto";
 
-const RP_ID = process.env.RP_ID || "passkeydriver-poc.vercel.app";
+const RP_ID = process.env.RP_ID || "passkeydriver-poc.web.app";
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");

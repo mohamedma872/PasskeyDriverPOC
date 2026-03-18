@@ -2,7 +2,7 @@ import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 import { getAndDeleteChallenge } from "../_redis.js";              // challenge ← Redis
 import { getCredential, updateSignCount } from "../_postgres.js";   // public key ← PostgreSQL
 
-const RP_ID = process.env.RP_ID || "passkeydriver-poc.vercel.app";
+const RP_ID = process.env.RP_ID || "passkeydriver-poc.web.app";
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");

@@ -64,6 +64,9 @@ dependencies {
     implementation("androidx.credentials:credentials:1.3.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
 
+    // HTTP client
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
     // Core
     implementation("androidx.core:core-ktx:1.15.0")
 

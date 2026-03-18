@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import com.example.passkeydriver.auth.PasskeyApi
 import com.example.passkeydriver.auth.PasskeyManager
 import com.example.passkeydriver.data.DriverRepository
 import com.example.passkeydriver.navigation.AppNavigation
@@ -13,7 +14,8 @@ import com.example.passkeydriver.viewmodel.RegisterViewModel
 
 class MainActivity : ComponentActivity() {
 
-    private val passkeyManager by lazy { PasskeyManager(applicationContext) }
+    private val passkeyApi = PasskeyApi("https://passkey-backend-tau.vercel.app")
+    private val passkeyManager by lazy { PasskeyManager(applicationContext, passkeyApi) }
     private val driverListViewModel by lazy { DriverListViewModel(passkeyManager) }
     private val registerViewModel by lazy { RegisterViewModel(passkeyManager) }
 

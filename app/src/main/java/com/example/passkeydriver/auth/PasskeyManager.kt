@@ -14,9 +14,11 @@ import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
 
-class PasskeyManager(context: Context) {
+class PasskeyManager(context: Context, private val api: PasskeyApi) {
 
     private val credentialManager = CredentialManager.create(context)
+
+    // WebAuthnServer kept only for local CredentialStore (driver list persistence)
     val webAuthnServer = WebAuthnServer(context)
 
     companion object {
@@ -33,43 +35,39 @@ class PasskeyManager(context: Context) {
         Log.d(TAG, "userId=$userId, username=$username, displayName=$displayName")
 
         return try {
-            val requestJson = webAuthnServer.generateRegistrationRequest(
-                userId = userId,
-                username = username,
-                displayName = displayName
-            )
-            Log.d(TAG, "Registration request JSON: $requestJson")
+            // Step 1: Get challenge + WebAuthn options from real backend
+            val beginResult = api.registerBegin(userId, username, displayName)
+            Log.d(TAG, "Got options from backend, challengeId=${beginResult.challengeId}")
+            Log.d(TAG, "Options JSON: ${beginResult.optionsJson}")
 
+            // Step 2: Ask Android Credential Manager to create the passkey (shows fingerprint UI)
             val createRequest = CreatePublicKeyCredentialRequest(
-                requestJson = requestJson
+                requestJson = beginResult.optionsJson
             )
-            Log.d(TAG, "CreatePublicKeyCredentialRequest created, calling CredentialManager...")
-
-            val result = credentialManager.createCredential(
-                context = context,
-                request = createRequest
-            )
+            val result = credentialManager.createCredential(context = context, request = createRequest)
             Log.d(TAG, "CredentialManager returned: ${result::class.java.simpleName}")
 
-            if (result is CreatePublicKeyCredentialResponse) {
-                val responseJson = result.registrationResponseJson
-                Log.d(TAG, "Registration response JSON: $responseJson")
-
-                val credentialId = webAuthnServer.processRegistrationResponse(responseJson)
-                Log.d(TAG, "Parsed credentialId: $credentialId")
-
-                if (credentialId != null) {
-                    webAuthnServer.storeCredential(credentialId, userId)
-                    Log.d(TAG, "=== PASSKEY REGISTRATION SUCCESS ===")
-                    PasskeyResult.Success(credentialId)
-                } else {
-                    Log.e(TAG, "Failed to parse credentialId from response")
-                    PasskeyResult.Error("Failed to process registration response")
-                }
-            } else {
-                Log.e(TAG, "Unexpected response type: ${result::class.java.name}")
-                PasskeyResult.Error("Unexpected response type: ${result::class.java.simpleName}")
+            if (result !is CreatePublicKeyCredentialResponse) {
+                return PasskeyResult.Error("Unexpected response type: ${result::class.java.simpleName}")
             }
+
+            val responseJson = result.registrationResponseJson
+            Log.d(TAG, "Registration response JSON: $responseJson")
+
+            // Step 3: Send signed response to backend for real crypto verification
+            val credentialId = api.registerFinish(beginResult.challengeId, userId, responseJson)
+            Log.d(TAG, "registerFinish credentialId: $credentialId")
+
+            if (credentialId != null) {
+                // Store locally so the driver list survives app restart
+                webAuthnServer.storeCredential(credentialId, userId)
+                Log.d(TAG, "=== PASSKEY REGISTRATION SUCCESS ===")
+                PasskeyResult.Success(credentialId)
+            } else {
+                Log.e(TAG, "Backend verification returned no credentialId")
+                PasskeyResult.Error("Registration verification failed on server")
+            }
+
         } catch (e: CreateCredentialCancellationException) {
             Log.w(TAG, "User cancelled passkey registration")
             PasskeyResult.Cancelled
@@ -77,7 +75,6 @@ class PasskeyManager(context: Context) {
             Log.e(TAG, "=== PASSKEY REGISTRATION FAILED ===")
             Log.e(TAG, "Type: ${e.type}")
             Log.e(TAG, "Message: ${e.errorMessage}")
-            Log.e(TAG, "Cause: ${e.cause}")
             Log.e(TAG, "Full exception:", e)
             PasskeyResult.Error("Registration failed: ${e.type} - ${e.errorMessage}")
         } catch (e: Exception) {
@@ -94,40 +91,40 @@ class PasskeyManager(context: Context) {
         Log.d(TAG, "credentialId=$credentialId")
 
         return try {
-            val requestJson = webAuthnServer.generateAuthenticationRequest(credentialId)
-            Log.d(TAG, "Authentication request JSON: $requestJson")
+            // Step 1: Get auth challenge from real backend
+            val beginResult = api.authBegin(
+                credentialIds = if (credentialId != null) listOf(credentialId) else null
+            )
+            Log.d(TAG, "Got auth options from backend, challengeId=${beginResult.challengeId}")
+            Log.d(TAG, "Auth options JSON: ${beginResult.optionsJson}")
 
+            // Step 2: Ask Android Credential Manager to sign the challenge (shows fingerprint UI)
             val getRequest = GetCredentialRequest(
-                listOf(GetPublicKeyCredentialOption(requestJson = requestJson))
+                listOf(GetPublicKeyCredentialOption(requestJson = beginResult.optionsJson))
             )
-            Log.d(TAG, "Calling CredentialManager.getCredential...")
-
-            val result = credentialManager.getCredential(
-                context = context,
-                request = getRequest
-            )
-
+            val result = credentialManager.getCredential(context = context, request = getRequest)
             val credential = result.credential
             Log.d(TAG, "Got credential type: ${credential::class.java.simpleName}")
 
-            if (credential is PublicKeyCredential) {
-                val responseJson = credential.authenticationResponseJson
-                Log.d(TAG, "Authentication response JSON: $responseJson")
-
-                val userId = webAuthnServer.verifyAuthenticationResponse(responseJson)
-                Log.d(TAG, "Verified userId: $userId")
-
-                if (userId != null) {
-                    Log.d(TAG, "=== PASSKEY AUTHENTICATION SUCCESS ===")
-                    PasskeyResult.Success(userId)
-                } else {
-                    Log.e(TAG, "Authentication verification returned null userId")
-                    PasskeyResult.Error("Authentication verification failed")
-                }
-            } else {
-                Log.e(TAG, "Unexpected credential type: ${credential::class.java.name}")
-                PasskeyResult.Error("Unexpected credential type: ${credential::class.java.simpleName}")
+            if (credential !is PublicKeyCredential) {
+                return PasskeyResult.Error("Unexpected credential type: ${credential::class.java.simpleName}")
             }
+
+            val responseJson = credential.authenticationResponseJson
+            Log.d(TAG, "Authentication response JSON: $responseJson")
+
+            // Step 3: Send signed response to backend for real crypto verification
+            val driverId = api.authFinish(beginResult.challengeId, responseJson)
+            Log.d(TAG, "authFinish driverId: $driverId")
+
+            if (driverId != null) {
+                Log.d(TAG, "=== PASSKEY AUTHENTICATION SUCCESS ===")
+                PasskeyResult.Success(driverId)
+            } else {
+                Log.e(TAG, "Backend signature verification failed")
+                PasskeyResult.Error("Authentication verification failed")
+            }
+
         } catch (e: GetCredentialCancellationException) {
             Log.w(TAG, "User cancelled passkey authentication")
             PasskeyResult.Cancelled
