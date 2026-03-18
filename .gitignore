@@ -1,0 +1,33 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Android build output
+app/build/
+build/
+*.apk
+*.aab
+*.ap_
+
+# Gradle wrapper jar (regeneratable)
+gradle/wrapper/gradle-wrapper.jar
+
+# Backend
+backend/node_modules/
+backend/.vercel/
+backend/.env
+backend/.env.local
+
+# Claude
+.claude/settings.local.json
+
+# Python
+__pycache__/
+*.pyc

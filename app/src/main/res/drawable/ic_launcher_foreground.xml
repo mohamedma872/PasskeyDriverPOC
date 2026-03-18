@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Key icon representing passkey -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,30 C47.4,30 42,35.4 42,42 C42,46.6 44.6,50.6 48.4,52.6 L48.4,66 L42,66 L42,72 L48.4,72 L48.4,78 L59.6,78 L59.6,52.6 C63.4,50.6 66,46.6 66,42 C66,35.4 60.6,30 54,30 Z M54,46 C51.8,46 50,44.2 50,42 C50,39.8 51.8,38 54,38 C56.2,38 58,39.8 58,42 C58,44.2 56.2,46 54,46 Z" />
+</vector>

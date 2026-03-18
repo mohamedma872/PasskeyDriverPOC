@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.example.passkeydriver",
+      "sha256_cert_fingerprints": [
+        "16:13:4C:DA:CB:5F:A0:1C:C3:9F:2D:AE:5A:CE:51:2F:5C:F7:51:59:25:1E:08:8F:AA:CE:48:A9:FF:50:1F:BD"
+      ]
+    }
+  }
+]
