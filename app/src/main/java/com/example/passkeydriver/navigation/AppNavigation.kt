@@ -1,75 +1,190 @@
 package com.example.passkeydriver.navigation
 
-import android.app.Activity
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.passkeydriver.data.DriverRepository
+import com.example.passkeydriver.data.DriverApi
+import com.example.passkeydriver.ui.screens.AdminLoginScreen
+import com.example.passkeydriver.ui.screens.AdminScreen
 import com.example.passkeydriver.ui.screens.DashboardScreen
-import com.example.passkeydriver.ui.screens.DriverListScreen
-import com.example.passkeydriver.ui.screens.RegisterScreen
-import com.example.passkeydriver.viewmodel.DriverListViewModel
-import com.example.passkeydriver.viewmodel.RegisterViewModel
+import com.example.passkeydriver.ui.screens.DriverPinScreen
+import com.example.passkeydriver.ui.screens.DriverTapScreen
+import com.example.passkeydriver.ui.screens.NfcReadScreen
+import com.example.passkeydriver.ui.screens.NfcWriteScreen
+import com.example.passkeydriver.ui.screens.PasswordLoginScreen
+import com.example.passkeydriver.ui.screens.RegisterDriverScreen
+import com.example.passkeydriver.viewmodel.AdminViewModel
+import com.example.passkeydriver.viewmodel.DriverAuthViewModel
+import com.example.passkeydriver.viewmodel.NfcViewModel
+import com.example.passkeydriver.viewmodel.RegisterDriverViewModel
 
 object Routes {
-    const val DRIVER_LIST = "driver_list"
-    const val REGISTER = "register"
-    const val DASHBOARD = "dashboard/{driverId}"
+    const val DRIVER_TAP = "driver_tap"
+    const val DRIVER_PIN = "driver_pin/{driverId}/{driverName}"
+    const val PASSWORD_LOGIN = "password_login"
+    const val ADMIN_LOGIN = "admin_login"
+    const val ADMIN = "admin"
+    const val REGISTER_DRIVER = "register_driver"
+    const val NFC_WRITE = "nfc_write/{driverId}/{driverName}"
+    const val NFC_READ = "nfc_read"
+    const val DASHBOARD = "dashboard/{driverId}/{driverName}"
 
-    fun dashboard(driverId: String) = "dashboard/$driverId"
+    fun driverPin(driverId: String, driverName: String) =
+        "driver_pin/${enc(driverId)}/${enc(driverName)}"
+
+    fun nfcWrite(driverId: String, driverName: String) =
+        "nfc_write/${enc(driverId)}/${enc(driverName)}"
+
+    fun dashboard(driverId: String, driverName: String) =
+        "dashboard/${enc(driverId)}/${enc(driverName)}"
+
+    private fun enc(s: String) = java.net.URLEncoder.encode(s, "UTF-8")
 }
 
 @Composable
 fun AppNavigation(
-    driverListViewModel: DriverListViewModel,
-    registerViewModel: RegisterViewModel
+    nfcViewModel: NfcViewModel,
+    adminViewModel: AdminViewModel,
+    registerDriverViewModel: RegisterDriverViewModel,
+    driverAuthViewModel: DriverAuthViewModel,
+    api: DriverApi
 ) {
     val navController = rememberNavController()
-    val activity = LocalContext.current as Activity
 
-    LaunchedEffect(Unit) {
-        driverListViewModel.setActivity(activity)
-        registerViewModel.setActivity(activity)
-    }
+    NavHost(navController = navController, startDestination = Routes.DRIVER_TAP) {
 
-    NavHost(
-        navController = navController,
-        startDestination = Routes.DRIVER_LIST
-    ) {
-        composable(Routes.DRIVER_LIST) {
-            DriverListScreen(
-                viewModel = driverListViewModel,
-                onAddDriver = { navController.navigate(Routes.REGISTER) },
-                onDriverAuthenticated = { driverId ->
-                    navController.navigate(Routes.dashboard(driverId))
+        composable(Routes.DRIVER_TAP) {
+            DriverTapScreen(
+                nfcViewModel = nfcViewModel,
+                api = api,
+                onDriverIdentified = { driverId, driverName ->
+                    navController.navigate(Routes.driverPin(driverId, driverName))
+                },
+                onPasswordLogin = { navController.navigate(Routes.PASSWORD_LOGIN) },
+                onAdmin = { navController.navigate(Routes.ADMIN_LOGIN) }
+            )
+        }
+
+        composable(
+            route = Routes.DRIVER_PIN,
+            arguments = listOf(
+                navArgument("driverId") { type = NavType.StringType },
+                navArgument("driverName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val driverId = backStackEntry.arguments?.getString("driverId") ?: return@composable
+            val driverName = backStackEntry.arguments?.getString("driverName") ?: return@composable
+            DriverPinScreen(
+                driverId = driverId,
+                driverName = driverName,
+                viewModel = driverAuthViewModel,
+                onAuthenticated = { id ->
+                    navController.navigate(Routes.dashboard(id, driverName)) {
+                        popUpTo(Routes.DRIVER_TAP) { inclusive = false }
+                    }
+                },
+                onForgotPin = { navController.navigate(Routes.PASSWORD_LOGIN) },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.PASSWORD_LOGIN) {
+            PasswordLoginScreen(
+                viewModel = driverAuthViewModel,
+                onAuthenticated = { driverId, driverName ->
+                    navController.navigate(Routes.dashboard(driverId, driverName)) {
+                        popUpTo(Routes.DRIVER_TAP) { inclusive = false }
+                    }
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.ADMIN_LOGIN) {
+            AdminLoginScreen(
+                viewModel = adminViewModel,
+                onSuccess = {
+                    navController.navigate(Routes.ADMIN) {
+                        popUpTo(Routes.ADMIN_LOGIN) { inclusive = true }
+                    }
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.ADMIN) {
+            AdminScreen(
+                viewModel = adminViewModel,
+                onRegisterDriver = { navController.navigate(Routes.REGISTER_DRIVER) },
+                onWriteCard = { driver ->
+                    navController.navigate(Routes.nfcWrite(driver.id, driver.name))
+                },
+                onReadCard = { navController.navigate(Routes.NFC_READ) },
+                onLogout = {
+                    adminViewModel.logout()
+                    navController.navigate(Routes.DRIVER_TAP) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             )
         }
 
-        composable(Routes.REGISTER) {
-            RegisterScreen(
-                viewModel = registerViewModel,
-                onBack = { navController.popBackStack() },
-                onRegistrationComplete = { navController.popBackStack() }
+        composable(Routes.REGISTER_DRIVER) {
+            RegisterDriverScreen(
+                viewModel = registerDriverViewModel,
+                onWriteCard = { driver ->
+                    navController.navigate(Routes.nfcWrite(driver.id, driver.name))
+                },
+                onDone = { navController.popBackStack() },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Routes.NFC_WRITE,
+            arguments = listOf(
+                navArgument("driverId") { type = NavType.StringType },
+                navArgument("driverName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val driverId = backStackEntry.arguments?.getString("driverId") ?: return@composable
+            val driverName = backStackEntry.arguments?.getString("driverName") ?: return@composable
+            NfcWriteScreen(
+                driverId = driverId,
+                driverName = driverName,
+                nfcViewModel = nfcViewModel,
+                onSuccess = { navController.popBackStack() },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.NFC_READ) {
+            NfcReadScreen(
+                nfcViewModel = nfcViewModel,
+                api = api,
+                onBack = { navController.popBackStack() }
             )
         }
 
         composable(
             route = Routes.DASHBOARD,
-            arguments = listOf(navArgument("driverId") { type = NavType.StringType })
+            arguments = listOf(
+                navArgument("driverId") { type = NavType.StringType },
+                navArgument("driverName") { type = NavType.StringType }
+            )
         ) { backStackEntry ->
             val driverId = backStackEntry.arguments?.getString("driverId") ?: return@composable
-            val driver = DriverRepository.findById(driverId) ?: return@composable
-
+            val driverName = backStackEntry.arguments?.getString("driverName") ?: return@composable
             DashboardScreen(
-                driver = driver,
+                driverId = driverId,
+                driverName = driverName,
                 onLogout = {
-                    navController.popBackStack(Routes.DRIVER_LIST, inclusive = false)
+                    navController.navigate(Routes.DRIVER_TAP) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             )
         }

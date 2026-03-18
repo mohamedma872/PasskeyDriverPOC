@@ -11,42 +11,57 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { challengeId, driverId, response } = req.body;
-  if (!challengeId || !driverId || !response) {
-    return res.status(400).json({ error: "challengeId, driverId, response required" });
-  }
+  try {
+    const { challengeId, driverId, response } = req.body;
+    if (!challengeId || !driverId || !response) {
+      return res.status(400).json({ error: "challengeId, driverId, response required" });
+    }
 
-  // Get challenge from Redis (deleted after read — one-time use)
-  const stored = await getAndDeleteChallenge(challengeId);
-  if (!stored) {
-    return res.status(400).json({ error: "Challenge expired or not found" });
-  }
+    // Get challenge from Redis (deleted after read — one-time use)
+    const stored = await getAndDeleteChallenge(challengeId);
+    if (!stored) {
+      return res.status(400).json({ error: "Challenge expired or not found" });
+    }
 
-  // Real cryptographic verification
-  const verification = await verifyRegistrationResponse({
-    response,
-    expectedChallenge: stored.challenge,
-    expectedOrigin: [
+    const expectedOrigin = [
       `https://${RP_ID}`,
       `android:apk-key-hash:${process.env.APK_KEY_HASH || ""}`,
-    ].filter(Boolean),
-    expectedRPID: RP_ID,
-    requireUserVerification: true,
-  });
+    ].filter(s => s && !s.endsWith(":"));
 
-  if (!verification.verified || !verification.registrationInfo) {
-    return res.status(400).json({ error: "Verification failed" });
+    console.log("register-finish: expectedOrigin=", expectedOrigin);
+    console.log("register-finish: expectedRPID=", RP_ID);
+    console.log("register-finish: response.origin=", response?.response?.clientDataJSON
+      ? JSON.parse(Buffer.from(response.response.clientDataJSON, "base64").toString()).origin
+      : "cannot decode"
+    );
+
+    // Real cryptographic verification
+    const verification = await verifyRegistrationResponse({
+      response,
+      expectedChallenge: stored.challenge,
+      expectedOrigin,
+      expectedRPID: RP_ID,
+      requireUserVerification: true,
+    });
+
+    if (!verification.verified || !verification.registrationInfo) {
+      return res.status(400).json({ error: "Verification failed" });
+    }
+
+    const { credential } = verification.registrationInfo;
+
+    // Store public key permanently in PostgreSQL
+    await storeCredential(
+      credential.id,
+      driverId,
+      Buffer.from(credential.publicKey),
+      credential.counter
+    );
+
+    return res.json({ verified: true, credentialId: credential.id });
+
+  } catch (err) {
+    console.error("register-finish ERROR:", err.message, err.stack);
+    return res.status(500).json({ error: err.message, stack: err.stack?.split("\n").slice(0, 5) });
   }
-
-  const { credential } = verification.registrationInfo;
-
-  // Store public key permanently in PostgreSQL
-  await storeCredential(
-    credential.id,
-    driverId,
-    Buffer.from(credential.publicKey),
-    credential.counter
-  );
-
-  return res.json({ verified: true, credentialId: credential.id });
 }

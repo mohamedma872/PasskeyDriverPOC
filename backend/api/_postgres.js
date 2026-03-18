@@ -28,10 +28,15 @@ export async function initSchema() {
       driver_id   TEXT PRIMARY KEY,
       name        TEXT NOT NULL,
       username    TEXT NOT NULL,
+      password    TEXT,
+      pin         TEXT,
       created_at  TIMESTAMP DEFAULT NOW(),
       updated_at  TIMESTAMP DEFAULT NOW()
     )
   `;
+  // Non-destructive migration for existing deployments
+  await sql`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS password TEXT`;
+  await sql`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS pin TEXT`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS credentials (
@@ -109,4 +114,53 @@ export async function getCredentialIdsByDriver(driverId) {
     SELECT credential_id FROM credentials WHERE driver_id = ${driverId}
   `;
   return rows.map((r) => r.credential_id);
+}
+
+// ── NFC Driver Management ──
+
+export async function getAllDrivers() {
+  const rows = await sql`
+    SELECT driver_id, name, username, created_at
+    FROM drivers
+    ORDER BY created_at DESC
+  `;
+  return rows.map((r) => ({
+    id: r.driver_id,
+    name: r.name,
+    username: r.username,
+    createdAt: r.created_at,
+  }));
+}
+
+export async function createDriver(driverId, name, username, password, pin) {
+  await sql`
+    INSERT INTO drivers (driver_id, name, username, password, pin)
+    VALUES (${driverId}, ${name}, ${username}, ${password}, ${pin})
+  `;
+}
+
+export async function getDriverById(driverId) {
+  const rows = await sql`
+    SELECT driver_id, name, username, created_at
+    FROM drivers WHERE driver_id = ${driverId}
+  `;
+  if (!rows[0]) return null;
+  return { id: rows[0].driver_id, name: rows[0].name, username: rows[0].username, createdAt: rows[0].created_at };
+}
+
+export async function verifyDriverPin(driverId, pin) {
+  const rows = await sql`
+    SELECT pin FROM drivers WHERE driver_id = ${driverId}
+  `;
+  if (!rows[0]) return false;
+  return rows[0].pin === pin;
+}
+
+export async function verifyDriverPassword(username, password) {
+  const rows = await sql`
+    SELECT driver_id, name FROM drivers
+    WHERE username = ${username} AND password = ${password}
+  `;
+  if (!rows[0]) return null;
+  return { id: rows[0].driver_id, name: rows[0].name, username };
 }

@@ -31,3 +31,5 @@ backend/.env.local
 # Python
 __pycache__/
 *.pyc
+.vercel
+.env*.local
