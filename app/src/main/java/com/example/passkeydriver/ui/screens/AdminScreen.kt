@@ -32,6 +32,14 @@ fun AdminScreen(
     val error by viewModel.error.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val issuedCount = drivers.count { it.cardIssuedAt != null }
+    var searchQuery by remember { mutableStateOf("") }
+    val filteredDrivers = remember(drivers, searchQuery) {
+        if (searchQuery.isBlank()) drivers
+        else drivers.filter {
+            it.name.contains(searchQuery, ignoreCase = true) ||
+            it.username.contains(searchQuery, ignoreCase = true)
+        }
+    }
 
     LaunchedEffect(Unit) { viewModel.loadDrivers() }
     LaunchedEffect(error) {
@@ -123,6 +131,30 @@ fun AdminScreen(
                 }
             }
 
+            // Search bar
+            item {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search drivers…") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Search, contentDescription = null,
+                            modifier = Modifier.size(20.dp))
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear",
+                                    modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.medium
+                )
+            }
+
             // Section header
             item {
                 Row(
@@ -130,18 +162,18 @@ fun AdminScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "Registered Drivers",
+                        if (searchQuery.isBlank()) "Registered Drivers" else "Results",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f)
                     )
-                    if (drivers.isNotEmpty()) {
+                    if (filteredDrivers.isNotEmpty()) {
                         Surface(
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.primaryContainer
                         ) {
                             Text(
-                                "${drivers.size}",
+                                "${filteredDrivers.size}",
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
@@ -159,8 +191,21 @@ fun AdminScreen(
                         contentAlignment = Alignment.Center
                     ) { CircularProgressIndicator() }
                 }
+            } else if (filteredDrivers.isEmpty() && searchQuery.isNotBlank()) {
+                item {
+                    Box(
+                        Modifier.fillMaxWidth().padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "No drivers match \"$searchQuery\"",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             } else {
-                items(drivers, key = { it.id }) { driver ->
+                items(filteredDrivers, key = { it.id }) { driver ->
                     DriverAdminCard(driver = driver, onClick = { onDriverDetail(driver) })
                 }
             }
