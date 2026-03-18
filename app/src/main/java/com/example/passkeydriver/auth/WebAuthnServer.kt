@@ -29,7 +29,7 @@ import java.security.SecureRandom
 class WebAuthnServer(context: Context) {
 
     private val TAG = "WebAuthnServer"
-    private val RP_ID = "passkeydriver-poc.web.app"
+    private val RP_ID = "passkey-backend-tau.vercel.app"
     private val RP_NAME = "Driver Passkey App"
 
     private val credentialStore = CredentialStore(context)

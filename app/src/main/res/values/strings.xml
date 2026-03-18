@@ -2,11 +2,10 @@
 <resources>
     <string name="app_name">Passkey Driver</string>
 
-    <!-- Digital Asset Links for Credential Manager -->
-    <!-- TODO: Replace with your Firebase Hosting domain. See SETUP.md -->
+    <!-- Digital Asset Links for Credential Manager — served from Vercel -->
     <string name="asset_statements">
         [{
-            \"include\": \"https://passkeydriver-poc.web.app/.well-known/assetlinks.json\"
+            \"include\": \"https://passkey-backend-tau.vercel.app/.well-known/assetlinks.json\"
         }]
     </string>
 </resources>

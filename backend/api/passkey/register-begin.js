@@ -3,7 +3,7 @@ import { storeChallenge } from "../_redis.js";           // challenge → Redis 
 import { upsertDriver, getCredentialIdsByDriver } from "../_postgres.js";  // driver → Postgres
 import { randomUUID } from "crypto";
 
-const RP_ID = process.env.RP_ID || "passkeydriver-poc.web.app";
+const RP_ID = process.env.RP_ID || "passkey-backend-tau.vercel.app";
 const RP_NAME = "Driver Passkey App";
 
 export default async function handler(req, res) {
