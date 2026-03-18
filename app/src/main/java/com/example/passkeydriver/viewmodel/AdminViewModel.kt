@@ -40,9 +40,7 @@ class AdminViewModel(private val api: DriverApi) : ViewModel() {
         }
     }
 
-    fun clearPinError() {
-        _pinError.value = false
-    }
+    fun clearPinError() { _pinError.value = false }
 
     fun logout() {
         _isLoggedIn.value = false
@@ -59,6 +57,18 @@ class AdminViewModel(private val api: DriverApi) : ViewModel() {
                 _error.value = "Failed to load drivers: ${e.message}"
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    fun markCardIssued(driverId: String) {
+        viewModelScope.launch {
+            try {
+                api.markCardIssued(driverId)
+                // Refresh driver list to update card status badges
+                loadDrivers()
+            } catch (e: Exception) {
+                _error.value = "Failed to mark card issued: ${e.message}"
             }
         }
     }

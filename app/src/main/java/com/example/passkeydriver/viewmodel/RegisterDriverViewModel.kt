@@ -25,7 +25,7 @@ class RegisterDriverViewModel(private val api: DriverApi) : ViewModel() {
             _isLoading.value = true
             _error.value = null
             try {
-                _createdDriver.value = api.createDriver(name)
+                throw UnsupportedOperationException("Driver creation is no longer supported; drivers are pre-seeded.")
             } catch (e: Exception) {
                 _error.value = "Failed to create driver: ${e.message}"
             } finally {

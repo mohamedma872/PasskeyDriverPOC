@@ -6,9 +6,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.lifecycle.Lifecycle
 import com.example.passkeydriver.data.DriverApi
 import com.example.passkeydriver.navigation.AppNavigation
 import com.example.passkeydriver.ui.theme.PasskeyDriverTheme
@@ -16,7 +16,6 @@ import com.example.passkeydriver.viewmodel.AdminViewModel
 import com.example.passkeydriver.viewmodel.DriverAuthViewModel
 import com.example.passkeydriver.viewmodel.NfcMode
 import com.example.passkeydriver.viewmodel.NfcViewModel
-import com.example.passkeydriver.viewmodel.RegisterDriverViewModel
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -24,7 +23,6 @@ class MainActivity : ComponentActivity() {
     private val api = DriverApi()
     private val nfcViewModel = NfcViewModel()
     private val adminViewModel by lazy { AdminViewModel(api) }
-    private val registerDriverViewModel by lazy { RegisterDriverViewModel(api) }
     private val driverAuthViewModel by lazy { DriverAuthViewModel(api) }
 
     private var nfcAdapter: NfcAdapter? = null
@@ -35,21 +33,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
 
-        // Enable/disable NFC reader mode whenever nfcMode changes (only while RESUMED)
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 nfcViewModel.nfcMode.collect { mode ->
                     if (mode != NfcMode.NONE) {
                         nfcAdapter?.enableReaderMode(
-                            this@MainActivity,
-                            nfcReaderCallback,
-                            NfcAdapter.FLAG_READER_NFC_A or
-                                    NfcAdapter.FLAG_READER_NFC_B or
-                                    NfcAdapter.FLAG_READER_NFC_F or
-                                    NfcAdapter.FLAG_READER_NFC_V,
+                            this@MainActivity, nfcReaderCallback,
+                            NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_NFC_B or
+                                    NfcAdapter.FLAG_READER_NFC_F or NfcAdapter.FLAG_READER_NFC_V,
                             null
                         )
                     } else {
@@ -64,7 +57,6 @@ class MainActivity : ComponentActivity() {
                 AppNavigation(
                     nfcViewModel = nfcViewModel,
                     adminViewModel = adminViewModel,
-                    registerDriverViewModel = registerDriverViewModel,
                     driverAuthViewModel = driverAuthViewModel,
                     api = api
                 )

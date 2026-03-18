@@ -35,31 +35,10 @@ class DriverApi(private val baseUrl: String = "https://passkey-backend-tau.verce
                     id = obj.getString("id"),
                     name = obj.getString("name"),
                     username = obj.getString("username"),
-                    createdAt = obj.optString("createdAt")
+                    createdAt = obj.optString("createdAt").takeIf { it.isNotEmpty() },
+                    cardIssuedAt = obj.optString("cardIssuedAt").takeIf { it.isNotEmpty() && it != "null" }
                 )
             }
-        }
-    }
-
-    suspend fun createDriver(name: String): Driver = withContext(Dispatchers.IO) {
-        val body = JSONObject().apply { put("name", name) }.toString()
-            .toRequestBody(json)
-        val request = Request.Builder()
-            .url("$baseUrl/api/drivers/create")
-            .post(body)
-            .build()
-        client.newCall(request).execute().use { response ->
-            val responseBody = response.body?.string() ?: throw Exception("Empty response")
-            Log.d(TAG, "createDriver: $responseBody")
-            if (!response.isSuccessful) throw Exception("HTTP ${response.code}: $responseBody")
-            val obj = JSONObject(responseBody)
-            Driver(
-                id = obj.getString("id"),
-                name = obj.getString("name"),
-                username = obj.getString("username"),
-                password = obj.getString("password"),
-                pin = obj.getString("pin")
-            )
         }
     }
 
@@ -74,8 +53,25 @@ class DriverApi(private val baseUrl: String = "https://passkey-backend-tau.verce
                 id = obj.getString("id"),
                 name = obj.getString("name"),
                 username = obj.getString("username"),
-                createdAt = obj.optString("createdAt")
+                createdAt = obj.optString("createdAt").takeIf { it.isNotEmpty() },
+                password = obj.optString("password").takeIf { it.isNotEmpty() && it != "null" },
+                pin = obj.optString("pin").takeIf { it.isNotEmpty() && it != "null" },
+                cardIssuedAt = obj.optString("cardIssuedAt").takeIf { it.isNotEmpty() && it != "null" }
             )
+        }
+    }
+
+    suspend fun markCardIssued(driverId: String) = withContext(Dispatchers.IO) {
+        val body = JSONObject().apply { put("driverId", driverId) }
+            .toString().toRequestBody(json)
+        val request = Request.Builder()
+            .url("$baseUrl/api/drivers/issue-card")
+            .post(body)
+            .build()
+        client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string() ?: throw Exception("Empty response")
+            Log.d(TAG, "markCardIssued: $responseBody")
+            if (!response.isSuccessful) throw Exception("HTTP ${response.code}")
         }
     }
 
@@ -90,7 +86,6 @@ class DriverApi(private val baseUrl: String = "https://passkey-backend-tau.verce
             .build()
         client.newCall(request).execute().use { response ->
             val responseBody = response.body?.string() ?: throw Exception("Empty response")
-            Log.d(TAG, "verifyPin: $responseBody")
             JSONObject(responseBody).optBoolean("valid", false)
         }
     }
@@ -106,7 +101,6 @@ class DriverApi(private val baseUrl: String = "https://passkey-backend-tau.verce
             .build()
         client.newCall(request).execute().use { response ->
             val responseBody = response.body?.string() ?: throw Exception("Empty response")
-            Log.d(TAG, "verifyPassword: $responseBody")
             val obj = JSONObject(responseBody)
             if (!obj.optBoolean("valid", false)) return@withContext null
             Driver(

@@ -8,7 +8,8 @@
       "Bash(printf \"FhNM2stfoBzDny2uWs5RL1z3UVklHgiPqs5Iqf9QH70\")",
       "WebFetch(domain:www.noon.com)",
       "Bash(find /Users/mohamedelsdody/Desktop/PasskeyDriverPOC/app -name *.kt)",
-      "Bash(./gradlew installDebug)"
+      "Bash(./gradlew installDebug)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")"
     ]
   }
 }

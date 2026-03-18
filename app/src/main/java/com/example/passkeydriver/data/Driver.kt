@@ -5,7 +5,7 @@ data class Driver(
     val name: String,
     val username: String,
     val createdAt: String? = null,
-    // Only present immediately after creation — shown once to admin
     val password: String? = null,
-    val pin: String? = null
+    val pin: String? = null,
+    val cardIssuedAt: String? = null
 )

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -21,8 +22,7 @@ import com.example.passkeydriver.viewmodel.AdminViewModel
 @Composable
 fun AdminScreen(
     viewModel: AdminViewModel,
-    onRegisterDriver: () -> Unit,
-    onWriteCard: (Driver) -> Unit,
+    onDriverDetail: (Driver) -> Unit,
     onReadCard: () -> Unit,
     onLogout: () -> Unit
 ) {
@@ -59,27 +59,32 @@ fun AdminScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    AdminActionCard(
-                        icon = Icons.Default.PersonAdd,
-                        label = "Register Driver",
-                        modifier = Modifier.weight(1f),
-                        onClick = onRegisterDriver
-                    )
-                    AdminActionCard(
-                        icon = Icons.Default.Nfc,
-                        label = "Read Card",
-                        modifier = Modifier.weight(1f),
-                        onClick = onReadCard
-                    )
+                Card(
+                    onClick = onReadCard,
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(Icons.Default.Nfc, contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.primary)
+                        Text("Scan & Verify Card", style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium)
+                    }
                 }
             }
 
             item {
-                Text("Registered Drivers (${drivers.size})",
+                Text(
+                    "Drivers (${drivers.size})",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
+                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                )
             }
 
             if (isLoading) {
@@ -90,7 +95,7 @@ fun AdminScreen(
                 }
             } else {
                 items(drivers, key = { it.id }) { driver ->
-                    DriverAdminCard(driver = driver, onWriteCard = { onWriteCard(driver) })
+                    DriverAdminCard(driver = driver, onClick = { onDriverDetail(driver) })
                 }
             }
         }
@@ -98,33 +103,12 @@ fun AdminScreen(
 }
 
 @Composable
-private fun AdminActionCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
+private fun DriverAdminCard(driver: Driver, onClick: () -> Unit) {
     Card(
         onClick = onClick,
-        modifier = modifier,
-        elevation = CardDefaults.cardElevation(2.dp)
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(1.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(icon, contentDescription = null,
-                modifier = Modifier.size(36.dp),
-                tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(8.dp))
-            Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium)
-        }
-    }
-}
-
-@Composable
-private fun DriverAdminCard(driver: Driver, onWriteCard: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(1.dp)) {
         Row(
             modifier = Modifier.padding(12.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -134,9 +118,11 @@ private fun DriverAdminCard(driver: Driver, onWriteCard: () -> Unit) {
                     .background(MaterialTheme.colorScheme.secondaryContainer),
                 contentAlignment = Alignment.Center
             ) {
-                Text(driver.name.first().uppercaseChar().toString(),
+                Text(
+                    driver.name.first().uppercaseChar().toString(),
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
             }
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -145,9 +131,32 @@ private fun DriverAdminCard(driver: Driver, onWriteCard: () -> Unit) {
                 Text("@${driver.username}", style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            IconButton(onClick = onWriteCard) {
-                Icon(Icons.Default.Nfc, contentDescription = "Write card",
-                    tint = MaterialTheme.colorScheme.primary)
+            // Card status badge
+            val hasCard = driver.cardIssuedAt != null
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = if (hasCard) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        if (hasCard) Icons.Default.Nfc else Icons.Default.CreditCardOff,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = if (hasCard) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        if (hasCard) "Card Issued" else "No Card",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (hasCard) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

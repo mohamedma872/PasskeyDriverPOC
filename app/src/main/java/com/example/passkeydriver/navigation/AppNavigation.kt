@@ -10,16 +10,15 @@ import com.example.passkeydriver.data.DriverApi
 import com.example.passkeydriver.ui.screens.AdminLoginScreen
 import com.example.passkeydriver.ui.screens.AdminScreen
 import com.example.passkeydriver.ui.screens.DashboardScreen
+import com.example.passkeydriver.ui.screens.DriverDetailScreen
 import com.example.passkeydriver.ui.screens.DriverPinScreen
 import com.example.passkeydriver.ui.screens.DriverTapScreen
 import com.example.passkeydriver.ui.screens.NfcReadScreen
 import com.example.passkeydriver.ui.screens.NfcWriteScreen
 import com.example.passkeydriver.ui.screens.PasswordLoginScreen
-import com.example.passkeydriver.ui.screens.RegisterDriverScreen
 import com.example.passkeydriver.viewmodel.AdminViewModel
 import com.example.passkeydriver.viewmodel.DriverAuthViewModel
 import com.example.passkeydriver.viewmodel.NfcViewModel
-import com.example.passkeydriver.viewmodel.RegisterDriverViewModel
 
 object Routes {
     const val DRIVER_TAP = "driver_tap"
@@ -27,16 +26,21 @@ object Routes {
     const val PASSWORD_LOGIN = "password_login"
     const val ADMIN_LOGIN = "admin_login"
     const val ADMIN = "admin"
-    const val REGISTER_DRIVER = "register_driver"
+    const val DRIVER_DETAIL = "driver_detail/{driverId}"
     const val NFC_WRITE = "nfc_write/{driverId}/{driverName}"
-    const val NFC_READ = "nfc_read"
+    const val NFC_READ = "nfc_read?expectedDriverId={expectedDriverId}&expectedDriverName={expectedDriverName}"
     const val DASHBOARD = "dashboard/{driverId}/{driverName}"
 
     fun driverPin(driverId: String, driverName: String) =
         "driver_pin/${enc(driverId)}/${enc(driverName)}"
 
+    fun driverDetail(driverId: String) = "driver_detail/${enc(driverId)}"
+
     fun nfcWrite(driverId: String, driverName: String) =
         "nfc_write/${enc(driverId)}/${enc(driverName)}"
+
+    fun nfcRead(expectedDriverId: String = "", expectedDriverName: String = "") =
+        "nfc_read?expectedDriverId=${enc(expectedDriverId)}&expectedDriverName=${enc(expectedDriverName)}"
 
     fun dashboard(driverId: String, driverName: String) =
         "dashboard/${enc(driverId)}/${enc(driverName)}"
@@ -48,7 +52,6 @@ object Routes {
 fun AppNavigation(
     nfcViewModel: NfcViewModel,
     adminViewModel: AdminViewModel,
-    registerDriverViewModel: RegisterDriverViewModel,
     driverAuthViewModel: DriverAuthViewModel,
     api: DriverApi
 ) {
@@ -118,11 +121,10 @@ fun AppNavigation(
         composable(Routes.ADMIN) {
             AdminScreen(
                 viewModel = adminViewModel,
-                onRegisterDriver = { navController.navigate(Routes.REGISTER_DRIVER) },
-                onWriteCard = { driver ->
-                    navController.navigate(Routes.nfcWrite(driver.id, driver.name))
+                onDriverDetail = { driver ->
+                    navController.navigate(Routes.driverDetail(driver.id))
                 },
-                onReadCard = { navController.navigate(Routes.NFC_READ) },
+                onReadCard = { navController.navigate(Routes.nfcRead()) },
                 onLogout = {
                     adminViewModel.logout()
                     navController.navigate(Routes.DRIVER_TAP) {
@@ -132,13 +134,20 @@ fun AppNavigation(
             )
         }
 
-        composable(Routes.REGISTER_DRIVER) {
-            RegisterDriverScreen(
-                viewModel = registerDriverViewModel,
+        composable(
+            route = Routes.DRIVER_DETAIL,
+            arguments = listOf(navArgument("driverId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val driverId = backStackEntry.arguments?.getString("driverId") ?: return@composable
+            DriverDetailScreen(
+                driverId = driverId,
+                api = api,
                 onWriteCard = { driver ->
                     navController.navigate(Routes.nfcWrite(driver.id, driver.name))
                 },
-                onDone = { navController.popBackStack() },
+                onVerifyCard = { id, name ->
+                    navController.navigate(Routes.nfcRead(id, name))
+                },
                 onBack = { navController.popBackStack() }
             )
         }
@@ -156,15 +165,28 @@ fun AppNavigation(
                 driverId = driverId,
                 driverName = driverName,
                 nfcViewModel = nfcViewModel,
-                onSuccess = { navController.popBackStack() },
+                onSuccess = {
+                    adminViewModel.markCardIssued(driverId)
+                    navController.popBackStack()
+                },
                 onBack = { navController.popBackStack() }
             )
         }
 
-        composable(Routes.NFC_READ) {
+        composable(
+            route = Routes.NFC_READ,
+            arguments = listOf(
+                navArgument("expectedDriverId") { type = NavType.StringType; defaultValue = "" },
+                navArgument("expectedDriverName") { type = NavType.StringType; defaultValue = "" }
+            )
+        ) { backStackEntry ->
+            val expectedDriverId = backStackEntry.arguments?.getString("expectedDriverId") ?: ""
+            val expectedDriverName = backStackEntry.arguments?.getString("expectedDriverName") ?: ""
             NfcReadScreen(
                 nfcViewModel = nfcViewModel,
                 api = api,
+                expectedDriverId = expectedDriverId,
+                expectedDriverName = expectedDriverName,
                 onBack = { navController.popBackStack() }
             )
         }
