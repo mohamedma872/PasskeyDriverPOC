@@ -1,176 +1,107 @@
 package com.example.passkeydriver.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.passkeydriver.data.Driver
-
-@OptIn(ExperimentalMaterial3Api::class)
+import androidx.compose.ui.unit.sp
 @Composable
-fun DashboardScreen(
-    driver: Driver,
-    onLogout: () -> Unit
-) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Dashboard") },
-                actions = {
-                    IconButton(onClick = onLogout) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = "Logout"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            )
+fun DashboardScreen(driverId: String, driverName: String, onLogout: () -> Unit) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0F1624))
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+    ) {
+        // Header
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF1A2535))
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("WasteHero", color = Color(0xFF00C9D7), fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                Text("Driver Dashboard", color = Color.White, fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold)
+            }
+            IconButton(onClick = onLogout) {
+                Icon(Icons.AutoMirrored.Filled.Logout, "Logout", tint = Color(0xFF8A96AA))
+            }
         }
-    ) { padding ->
+
         Column(
-            modifier = Modifier
+            Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
+            verticalArrangement = Arrangement.Center
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Success icon
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                contentDescription = null,
-                modifier = Modifier.size(72.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Welcome!",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Driver info card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            // Avatar
+            Box(
+                Modifier
+                    .size(90.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF1A2535)),
+                contentAlignment = Alignment.Center
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Avatar
-                    Surface(
-                        modifier = Modifier.size(80.dp),
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                text = driver.displayName.first().uppercase(),
-                                style = MaterialTheme.typography.headlineLarge,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = driver.displayName,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-
-                    Text(
-                        text = "@${driver.username}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = "Driver ID: ${driver.id}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    driverName.firstOrNull()?.uppercase() ?: "?",
+                    color = Color(0xFF00C9D7),
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
 
-            // Auth method indicator
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                )
-            ) {
+            Icon(
+                Icons.Default.CheckCircle,
+                null,
+                tint = Color(0xFF00C9D7),
+                modifier = Modifier.size(28.dp)
+            )
+            Spacer(Modifier.height(8.dp))
+
+            Text("Welcome, $driverName", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(4.dp))
+            Text("Authenticated via Face + PIN", color = Color(0xFF8A96AA), fontSize = 14.sp)
+
+            Spacer(Modifier.height(40.dp))
+
+            Surface(shape = RoundedCornerShape(12.dp), color = Color(0xFF1A2535)) {
                 Column(
-                    modifier = Modifier
+                    Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Fingerprint,
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Authenticated via Passkey",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
-                    Text(
-                        text = "No password was used for this login",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
-                        textAlign = TextAlign.Center
-                    )
+                    Text("Session Info", color = Color(0xFF8A96AA), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    InfoLine("Driver", driverName)
+                    InfoLine("Auth method", "PIN + Cloud Face Verify")
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun InfoLine(label: String, value: String) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, color = Color(0xFF8A96AA), fontSize = 13.sp)
+        Text(value, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
     }
 }

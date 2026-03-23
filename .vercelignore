@@ -1,0 +1,9 @@
+app/
+gradle/
+.gradle/
+.idea/
+build/
+*.apk
+*.aab
+*.iml
+firebase-debug.log

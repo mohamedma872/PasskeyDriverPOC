@@ -110,3 +110,73 @@ export async function getCredentialIdsByDriver(driverId) {
   `;
   return rows.map((r) => r.credential_id);
 }
+
+// ── Fleet drivers (face + PIN auth) ──
+
+export async function initFleetSchema() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS fleet_drivers (
+      id              TEXT PRIMARY KEY,
+      name            TEXT NOT NULL,
+      pin_argon2      TEXT,
+      embeddings_enc  TEXT,
+      is_enrolled     BOOLEAN NOT NULL DEFAULT false,
+      created_at      TIMESTAMP DEFAULT NOW(),
+      updated_at      TIMESTAMP DEFAULT NOW()
+    )
+  `;
+  // Migrations for tables created in earlier versions
+  await sql`ALTER TABLE fleet_drivers DROP COLUMN IF EXISTS pin_hash`;
+  // Rename pin_bcrypt → pin_argon2 only if pin_bcrypt still exists
+  await sql`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'fleet_drivers' AND column_name = 'pin_bcrypt'
+      ) THEN
+        ALTER TABLE fleet_drivers RENAME COLUMN pin_bcrypt TO pin_argon2;
+      END IF;
+    END $$
+  `;
+  await sql`ALTER TABLE fleet_drivers ADD COLUMN IF NOT EXISTS pin_argon2 TEXT`;
+}
+
+export async function lookupById(id) {
+  const rows = await sql`
+    SELECT id, name, pin_argon2, embeddings_enc, is_enrolled
+    FROM fleet_drivers WHERE id = ${id}
+  `;
+  if (!rows[0]) return null;
+  const r = rows[0];
+  return { id: r.id, name: r.name, pinArgon2: r.pin_argon2, embeddingsEnc: r.embeddings_enc, isEnrolled: r.is_enrolled };
+}
+
+export async function listEnrolledWithEmbeddings() {
+  const rows = await sql`
+    SELECT id, name, embeddings_enc FROM fleet_drivers
+    WHERE is_enrolled = true AND embeddings_enc IS NOT NULL
+  `;
+  return rows.map((r) => ({ id: r.id, name: r.name, embeddingsEnc: r.embeddings_enc }));
+}
+
+export async function listFleetDrivers() {
+  const rows = await sql`
+    SELECT id, name, is_enrolled FROM fleet_drivers ORDER BY name ASC
+  `;
+  return rows.map((r) => ({ id: r.id, name: r.name, isEnrolled: r.is_enrolled }));
+}
+
+export async function upsertFleetDriver({ id, name, pinArgon2, embeddingsEnc, isEnrolled }) {
+  await sql`
+    INSERT INTO fleet_drivers (id, name, pin_argon2, embeddings_enc, is_enrolled, updated_at)
+    VALUES (${id}, ${name}, ${pinArgon2 ?? null}, ${embeddingsEnc ?? null}, ${isEnrolled}, NOW())
+    ON CONFLICT (id)
+    DO UPDATE SET
+      name = ${name},
+      pin_argon2 = ${pinArgon2 ?? null},
+      embeddings_enc = COALESCE(${embeddingsEnc ?? null}, fleet_drivers.embeddings_enc),
+      is_enrolled = ${isEnrolled},
+      updated_at = NOW()
+  `;
+}
