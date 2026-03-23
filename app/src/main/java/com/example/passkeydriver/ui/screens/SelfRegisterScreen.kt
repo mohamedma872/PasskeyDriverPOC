@@ -235,28 +235,10 @@ private fun NameAndPinStep(viewModel: RegisterViewModel, onBack: () -> Unit) {
 
             Spacer(Modifier.height(12.dp))
 
-            // Error or hint
-            AnimatedContent(targetState = pinError, label = "pin_error") { error ->
-                if (error != null) {
-                    Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF3D0000)) {
-                        Text(
-                            error,
-                            color = Color(0xFFFF6B6B),
-                            fontSize = 12.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
-                    }
-                } else {
-                    Text(
-                        "No repeated (111111) or sequential (123456) digits",
-                        color = Color(0xFF4A5568),
-                        fontSize = 11.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 24.dp)
-                    )
-                }
-            }
+            PinValidationChecklist(
+                digits = if (isConfirming) pinDigits else pinDigits,
+                ready  = pinDigits.size == 6
+            )
 
             Spacer(Modifier.height(20.dp))
 
@@ -289,6 +271,89 @@ private fun NameAndPinStep(viewModel: RegisterViewModel, onBack: () -> Unit) {
                 fontSize = 16.sp,
                 modifier = Modifier.padding(vertical = 6.dp)
             )
+        }
+    }
+}
+
+@Composable
+private fun PinValidationChecklist(digits: List<Int>, ready: Boolean) {
+    val pin = digits.joinToString("")
+
+    data class Rule(val label: String, val example: String, val passes: Boolean?)
+
+    val rules = if (!ready) {
+        listOf(
+            Rule("All same digit",        "111111", null),
+            Rule("Sequential ascending",  "123456", null),
+            Rule("Sequential descending", "987654", null),
+            Rule("Repeating half",        "123123", null),
+            Rule("Repeating 2-digit",     "121212", null),
+        )
+    } else {
+        fun isAllSame(p: String)      = p.all { it == p[0] }
+        fun isAscending(p: String)    = p.map { it.digitToInt() }.zipWithNext { a, b -> b - a }.all { it == 1 }
+        fun isDescending(p: String)   = p.map { it.digitToInt() }.zipWithNext { a, b -> b - a }.all { it == -1 }
+        fun isHalfRepeat(p: String)   = p.substring(0, 3) == p.substring(3, 6)
+        fun is2DigitRepeat(p: String) = p.chunked(2).all { it == p.substring(0, 2) }
+
+        listOf(
+            Rule("All same digit",        "111111", !isAllSame(pin)),
+            Rule("Sequential ascending",  "123456", !isAscending(pin)),
+            Rule("Sequential descending", "987654", !isDescending(pin)),
+            Rule("Repeating half",        "123123", !isHalfRepeat(pin)),
+            Rule("Repeating 2-digit",     "121212", !is2DigitRepeat(pin)),
+        )
+    }
+
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = Color(0xFF131B28),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+    ) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            rules.forEach { rule ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Status icon
+                    Text(
+                        when (rule.passes) {
+                            true  -> "✓"
+                            false -> "✗"
+                            null  -> "·"
+                        },
+                        color = when (rule.passes) {
+                            true  -> Color(0xFF00C9D7)
+                            false -> Color(0xFFFF6B6B)
+                            null  -> Color(0xFF4A5568)
+                        },
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.width(16.dp)
+                    )
+                    // Rule label
+                    Text(
+                        rule.label,
+                        color = when (rule.passes) {
+                            true  -> Color(0xFF8A96AA)
+                            false -> Color(0xFFFF6B6B)
+                            null  -> Color(0xFF4A5568)
+                        },
+                        fontSize = 12.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                    // Example
+                    Text(
+                        rule.example,
+                        color = Color(0xFF2D3748),
+                        fontSize = 11.sp,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                    )
+                }
+            }
         }
     }
 }

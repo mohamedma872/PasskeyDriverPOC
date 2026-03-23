@@ -8,7 +8,7 @@ import { initSchema, initFleetSchema } from "./_postgres.js";
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
-  if (req.query.secret !== process.env.SETUP_SECRET) {
+  if (req.query.secret !== process.env.SETUP_SECRET?.trim()) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 

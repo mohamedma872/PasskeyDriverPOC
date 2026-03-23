@@ -24,7 +24,8 @@ fun PinLoginScreen(
     viewModel: PinLoginViewModel,
     driverName: String,
     onDriverFound: (driverId: String, name: String) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onFallbackLogin: () -> Unit
 ) {
     val digits          by viewModel.digits.collectAsState()
     val isLoading       by viewModel.isLoading.collectAsState()
@@ -143,6 +144,14 @@ fun PinLoginScreen(
         }
 
         Spacer(Modifier.weight(1f))
+        TextButton(onClick = onFallbackLogin) {
+            Text(
+                "Trouble logging in? Use username & password",
+                color = Color(0xFF8A96AA),
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center
+            )
+        }
         Spacer(Modifier.height(24.dp))
     }
 }

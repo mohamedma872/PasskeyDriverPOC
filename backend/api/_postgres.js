@@ -140,6 +140,10 @@ export async function initFleetSchema() {
     END $$
   `;
   await sql`ALTER TABLE fleet_drivers ADD COLUMN IF NOT EXISTS pin_argon2 TEXT`;
+  await sql`ALTER TABLE fleet_drivers ADD COLUMN IF NOT EXISTS username TEXT`;
+  await sql`ALTER TABLE fleet_drivers ADD COLUMN IF NOT EXISTS password_argon2 TEXT`;
+  // Unique index on username (skip if already exists)
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_fleet_drivers_username ON fleet_drivers (username) WHERE username IS NOT NULL`;
 }
 
 export async function lookupById(id) {
@@ -150,6 +154,16 @@ export async function lookupById(id) {
   if (!rows[0]) return null;
   const r = rows[0];
   return { id: r.id, name: r.name, pinArgon2: r.pin_argon2, embeddingsEnc: r.embeddings_enc, isEnrolled: r.is_enrolled };
+}
+
+export async function lookupByUsername(username) {
+  const rows = await sql`
+    SELECT id, name, password_argon2
+    FROM fleet_drivers WHERE username = ${username}
+  `;
+  if (!rows[0]) return null;
+  const r = rows[0];
+  return { id: r.id, name: r.name, passwordArgon2: r.password_argon2 };
 }
 
 export async function listEnrolledWithEmbeddings() {
@@ -167,16 +181,18 @@ export async function listFleetDrivers() {
   return rows.map((r) => ({ id: r.id, name: r.name, isEnrolled: r.is_enrolled }));
 }
 
-export async function upsertFleetDriver({ id, name, pinArgon2, embeddingsEnc, isEnrolled }) {
+export async function upsertFleetDriver({ id, name, pinArgon2, embeddingsEnc, isEnrolled, username, passwordArgon2 }) {
   await sql`
-    INSERT INTO fleet_drivers (id, name, pin_argon2, embeddings_enc, is_enrolled, updated_at)
-    VALUES (${id}, ${name}, ${pinArgon2 ?? null}, ${embeddingsEnc ?? null}, ${isEnrolled}, NOW())
+    INSERT INTO fleet_drivers (id, name, pin_argon2, embeddings_enc, is_enrolled, username, password_argon2, updated_at)
+    VALUES (${id}, ${name}, ${pinArgon2 ?? null}, ${embeddingsEnc ?? null}, ${isEnrolled}, ${username ?? null}, ${passwordArgon2 ?? null}, NOW())
     ON CONFLICT (id)
     DO UPDATE SET
       name = ${name},
       pin_argon2 = ${pinArgon2 ?? null},
       embeddings_enc = COALESCE(${embeddingsEnc ?? null}, fleet_drivers.embeddings_enc),
       is_enrolled = ${isEnrolled},
+      username = COALESCE(${username ?? null}, fleet_drivers.username),
+      password_argon2 = COALESCE(${passwordArgon2 ?? null}, fleet_drivers.password_argon2),
       updated_at = NOW()
   `;
 }

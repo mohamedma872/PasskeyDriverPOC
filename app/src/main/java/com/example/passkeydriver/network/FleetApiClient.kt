@@ -15,6 +15,7 @@ data class DriverInfo(val id: String, val name: String, val isEnrolled: Boolean)
 data class PinCheckResult(val driverId: String, val name: String)
 data class VerifyResult(val matched: Boolean, val score: Float, val driverId: String, val name: String)
 data class DuplicateCheckResult(val isDuplicate: Boolean, val name: String?)
+data class CredentialLoginResult(val driverId: String, val name: String)
 
 object FleetApiClient {
 
@@ -116,6 +117,20 @@ object FleetApiClient {
             DuplicateCheckResult(
                 isDuplicate = json.getBoolean("isDuplicate"),
                 name        = json.optString("name").takeIf { it.isNotEmpty() }
+            )
+        }.getOrNull()
+    }
+
+    /** Fallback login with username + password. */
+    suspend fun loginWithCredentials(username: String, password: String): CredentialLoginResult? = withContext(Dispatchers.IO) {
+        runCatching {
+            val body = JSONObject().put("username", username).put("password", password)
+            val resp = post("/api/fleet/login", body)
+            if (!resp.isSuccessful) return@withContext null
+            val json = JSONObject(resp.body!!.string())
+            CredentialLoginResult(
+                driverId = json.getString("driverId"),
+                name     = json.getString("name")
             )
         }.getOrNull()
     }

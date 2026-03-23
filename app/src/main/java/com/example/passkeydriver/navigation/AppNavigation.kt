@@ -9,11 +9,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.passkeydriver.ui.screens.CredentialLoginScreen
 import com.example.passkeydriver.ui.screens.DashboardScreen
 import com.example.passkeydriver.ui.screens.DriverListScreen
 import com.example.passkeydriver.ui.screens.FaceVerifyLoginScreen
 import com.example.passkeydriver.ui.screens.PinLoginScreen
 import com.example.passkeydriver.ui.screens.SelfRegisterScreen
+import com.example.passkeydriver.viewmodel.CredentialLoginViewModel
 import com.example.passkeydriver.viewmodel.DriverListViewModel
 import com.example.passkeydriver.viewmodel.FaceVerifyLoginViewModel
 import com.example.passkeydriver.viewmodel.PinLoginViewModel
@@ -22,11 +24,12 @@ import java.net.URLDecoder
 import java.net.URLEncoder
 
 object Routes {
-    const val DRIVER_PICKER = "driver_list"
-    const val PIN_LOGIN     = "pin_login/{driverId}/{name}"
-    const val FACE_VERIFY   = "face_verify/{driverId}/{name}"
-    const val DASHBOARD     = "dashboard/{driverId}/{name}"
-    const val REGISTER      = "register"
+    const val DRIVER_PICKER    = "driver_list"
+    const val PIN_LOGIN        = "pin_login/{driverId}/{name}"
+    const val FACE_VERIFY      = "face_verify/{driverId}/{name}"
+    const val DASHBOARD        = "dashboard/{driverId}/{name}"
+    const val REGISTER         = "register"
+    const val CREDENTIAL_LOGIN = "credential_login"
 
     fun pinLogin(driverId: String, name: String) =
         "pin_login/$driverId/${URLEncoder.encode(name, "UTF-8")}"
@@ -78,7 +81,8 @@ fun AppNavigation() {
                         popUpTo(Routes.DRIVER_PICKER) { inclusive = false }
                     }
                 },
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onFallbackLogin = { navController.navigate(Routes.CREDENTIAL_LOGIN) }
             )
         }
 
@@ -134,6 +138,20 @@ fun AppNavigation() {
                 viewModel = vm,
                 onRegistered = { driverId ->
                     val name = vm.driverName.value.trim()
+                    navController.navigate(Routes.dashboard(driverId, name)) {
+                        popUpTo(Routes.DRIVER_PICKER) { inclusive = false }
+                    }
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // ── Credential fallback login ──────────────────────────────────────────
+        composable(Routes.CREDENTIAL_LOGIN) {
+            val vm: CredentialLoginViewModel = viewModel()
+            CredentialLoginScreen(
+                viewModel = vm,
+                onSuccess = { driverId, name ->
                     navController.navigate(Routes.dashboard(driverId, name)) {
                         popUpTo(Routes.DRIVER_PICKER) { inclusive = false }
                     }
